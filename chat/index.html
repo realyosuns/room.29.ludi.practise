@@ -339,15 +339,23 @@
         };
 
         /* AUTO LOGIN */
+        let firebaseReady = false;
+
+setTimeout(() => {
+    firebaseReady = true;
+}, 500);
+
         onAuthStateChanged(auth, (user) => {
-            if (user) {
-                userNameLabel.textContent = user.displayName;
-                userAvatarSmall.src = user.photoURL;
-                userAvatarSmall.style.display = "inline-block";
-            } else {
-                googleLogin();
-            }
-        });
+    if (user) {
+        userNameLabel.textContent = user.displayName;
+        userAvatarSmall.src = user.photoURL;
+        userAvatarSmall.style.display = "inline-block";
+    } else {
+        if (firebaseReady) {
+            googleLogin();
+        }
+    }
+});
 
         /* SEND MESSAGE */
         window.sendMessage = function () {
