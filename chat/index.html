@@ -3,61 +3,6 @@
 <head>
     <title>Room 29 Chat</title>
 
-    <!-- Modern Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBCLNLLSe-ex6lo60P3wDQ-_n510dnM-nc",
-            authDomain: "room29practise.firebaseapp.com",
-            databaseURL: "https://room29practise-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "room29practise",
-            storageBucket: "room29practise.firebasestorage.app",
-            messagingSenderId: "109147297724",
-            appId: "1:109147297724:web:ac7ba4419a7c0a1f33fdb9"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const messagesRef = ref(db, "messages");
-
-        window.sendMessage = function () {
-            const name = document.getElementById("name").value.trim();
-            const msg = document.getElementById("msg").value.trim();
-            if (!name || !msg) return;
-
-            push(messagesRef, {
-                name: name,
-                text: msg,
-                time: Date.now()
-            });
-
-            document.getElementById("msg").value = "";
-        };
-
-        onChildAdded(messagesRef, (snapshot) => {
-            const data = snapshot.val();
-            const messages = document.getElementById("messages");
-
-            const time = new Date(data.time).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit"
-            });
-
-            const div = document.createElement("div");
-            div.className = "message";
-            div.innerHTML = `
-                <span class="message-name">${data.name}</span>
-                <span class="message-text">${data.text}</span>
-                <span class="message-time">${time}</span>
-            `;
-
-            messages.appendChild(div);
-            messages.scrollTop = messages.scrollHeight;
-        });
-    </script>
-
     <style>
         :root {
             --bg: #202225;
@@ -81,7 +26,7 @@
 
         body {
             margin: 0;
-            font-family: system-ui;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             background: var(--bg);
             color: var(--text);
             display: flex;
@@ -89,16 +34,45 @@
         }
 
         .sidebar {
-            width: 220px;
+            width: 240px;
             background: #18191c;
             padding: 12px;
+            box-sizing: border-box;
+            color: #dcddde;
         }
 
         .home-btn {
             cursor: pointer;
             font-size: 16px;
-            margin-bottom: 20px;
-            color: #fff;
+            margin-bottom: 16px;
+        }
+
+        .sidebar h2 {
+            font-size: 16px;
+            margin: 0 0 10px;
+        }
+
+        .channel {
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #b9bbbe;
+        }
+
+        .channel.active {
+            background: #3f4248;
+            color: #ffffff;
+        }
+
+        .login-btn {
+            margin-top: 12px;
+            padding: 6px 10px;
+            font-size: 13px;
+            border-radius: 4px;
+            border: none;
+            background: #4285f4;
+            color: white;
+            cursor: pointer;
         }
 
         .main {
@@ -106,6 +80,7 @@
             display: flex;
             flex-direction: column;
             background: var(--bg-alt);
+            border-left: 1px solid var(--border);
         }
 
         .topbar {
@@ -115,42 +90,86 @@
             align-items: center;
             justify-content: space-between;
             padding: 0 16px;
+            box-sizing: border-box;
+        }
+
+        .topbar-title {
+            font-weight: 600;
         }
 
         .mode-toggle {
-            cursor: pointer;
-            padding: 4px 8px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
             font-size: 13px;
             color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .user-info {
+            font-size: 13px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .user-avatar-small {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
         }
 
         .messages {
             flex: 1;
             padding: 16px;
+            box-sizing: border-box;
             overflow-y: auto;
         }
 
         .message {
             margin-bottom: 10px;
             font-size: 14px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .message-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
         }
 
         .message-name {
             font-weight: 600;
-            margin-right: 6px;
         }
 
         .message-time {
             font-size: 11px;
             color: var(--text-muted);
-            margin-left: 6px;
+        }
+
+        .message-text {
+            color: var(--text);
         }
 
         .input-area {
             border-top: 1px solid var(--border);
             padding: 10px 16px;
+            box-sizing: border-box;
+            background: var(--bg-alt);
         }
 
         .input-row {
@@ -158,27 +177,35 @@
             gap: 8px;
         }
 
-        input, textarea {
+        textarea {
+            flex: 1;
+            resize: none;
+            height: 50px;
             background: var(--input-bg);
             border: 1px solid var(--border);
             color: var(--text);
             padding: 8px;
             border-radius: 4px;
+            font-size: 14px;
+            outline: none;
         }
 
-        textarea {
-            flex: 1;
-            resize: none;
-            height: 50px;
+        textarea::placeholder {
+            color: var(--text-muted);
         }
 
-        button {
+        button.send-btn {
             background: var(--accent);
             border: none;
             color: white;
             padding: 8px 14px;
             border-radius: 4px;
+            font-size: 14px;
             cursor: pointer;
+        }
+
+        button.send-btn:hover {
+            filter: brightness(1.1);
         }
     </style>
 </head>
@@ -187,12 +214,17 @@
     <div class="sidebar">
         <div class="home-btn" onclick="window.location.href='https://realyosuns.github.io/room.29.ludi.practise/'">🏠 Home</div>
         <h2>Room 29</h2>
-        <div># general</div>
+        <div class="channel active"># general</div>
+        <button class="login-btn" onclick="googleLogin()">Login with Google</button>
     </div>
 
     <div class="main">
         <div class="topbar">
-            <div># general</div>
+            <div class="topbar-title"># general</div>
+            <div class="user-info">
+                <img id="userAvatarSmall" class="user-avatar-small" style="display:none;">
+                <span id="userNameLabel">Not logged in</span>
+            </div>
             <div class="mode-toggle" onclick="toggleMode()">Toggle light/dark</div>
         </div>
 
@@ -200,26 +232,142 @@
 
         <div class="input-area">
             <div class="input-row">
-                <input id="name" placeholder="Your name">
                 <textarea id="msg" placeholder="Type a message... (Enter to send)"></textarea>
-                <button onclick="sendMessage()">Send</button>
+                <button class="send-btn" onclick="sendMessage()">Send</button>
             </div>
         </div>
     </div>
 
-    <script>
-        document.getElementById("msg").addEventListener("keydown", function(e) {
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+        import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBCLNLLSe-ex6lo60P3wDQ-_n510dnM-nc",
+            authDomain: "room29practise.firebaseapp.com",
+            databaseURL: "https://room29practise-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "room29practise",
+            storageBucket: "room29practise.firebasestorage.app",
+            messagingSenderId: "109147297724",
+            appId: "1:109147297724:web:ac7ba4419a7c0a1f33fdb9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const messagesRef = ref(db, "messages");
+
+        const auth = getAuth();
+        const provider = new GoogleAuthProvider();
+
+        const userNameLabel = document.getElementById("userNameLabel");
+        const userAvatarSmall = document.getElementById("userAvatarSmall");
+        const msgInput = document.getElementById("msg");
+        const messagesDiv = document.getElementById("messages");
+
+        window.googleLogin = function () {
+            signInWithPopup(auth, provider)
+                .then((result) => {
+                    const user = result.user;
+                    userNameLabel.textContent = user.displayName || "Unknown User";
+                    if (user.photoURL) {
+                        userAvatarSmall.src = user.photoURL;
+                        userAvatarSmall.style.display = "inline-block";
+                    }
+                    alert("Logged in as " + user.displayName);
+                })
+                .catch((error) => {
+                    console.error(error);
+                    alert("Login failed");
+                });
+        };
+
+        window.sendMessage = function () {
+            const text = msgInput.value.trim();
+            if (!text) return;
+
+            const user = auth.currentUser;
+            if (!user) {
+                alert("You must log in with Google first!");
+                return;
+            }
+
+            push(messagesRef, {
+                uid: user.uid,
+                name: user.displayName || "Unknown User",
+                avatar: user.photoURL || "",
+                text: text,
+                time: Date.now()
+            });
+
+            msgInput.value = "";
+        };
+
+        msgInput.addEventListener("keydown", function (e) {
             if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                sendMessage();
+                window.sendMessage();
             }
         });
 
-        function toggleMode() {
+        onChildAdded(messagesRef, (snapshot) => {
+            const data = snapshot.val();
+            const time = new Date(data.time || Date.now()).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+
+            const div = document.createElement("div");
+            div.className = "message";
+
+            const avatarImg = document.createElement("img");
+            avatarImg.className = "avatar";
+            if (data.avatar) {
+                avatarImg.src = data.avatar;
+            } else {
+                avatarImg.style.display = "none";
+            }
+
+            const contentDiv = document.createElement("div");
+            contentDiv.className = "message-content";
+
+            const headerDiv = document.createElement("div");
+            headerDiv.className = "message-header";
+
+            const nameSpan = document.createElement("span");
+            nameSpan.className = "message-name";
+            nameSpan.textContent = data.name || "Unknown";
+
+            const timeSpan = document.createElement("span");
+            timeSpan.className = "message-time";
+            timeSpan.textContent = time;
+
+            const textDiv = document.createElement("div");
+            textDiv.className = "message-text";
+            textDiv.textContent = data.text;
+
+            headerDiv.appendChild(nameSpan);
+            headerDiv.appendChild(timeSpan);
+            contentDiv.appendChild(headerDiv);
+            contentDiv.appendChild(textDiv);
+
+            div.appendChild(avatarImg);
+            div.appendChild(contentDiv);
+
+            messagesDiv.appendChild(div);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+
+        window.toggleMode = function () {
             const body = document.body;
-            body.classList.toggle("light");
-            body.classList.toggle("dark");
-        }
+            if (body.classList.contains("dark")) {
+                body.classList.remove("dark");
+                body.classList.add("light");
+            } else {
+                body.classList.remove("light");
+                body.classList.add("dark");
+            }
+        };
     </script>
 </body>
 </html>
