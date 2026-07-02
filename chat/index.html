@@ -192,6 +192,9 @@
 
 <body class="dark">
     <div class="sidebar">
+        <button id="fallbackLogin" class="login-btn" onclick="googleLogin()" style="display:none;">
+    Login with Google
+</button>
         <div class="home-btn" onclick="window.location.href='https://realyosuns.github.io/room.29.ludi.practise/'">🏠 Home</div>
         <h2>Room 29</h2>
         <div class="channel active"># general</div>
@@ -217,7 +220,31 @@
         </div>
     </div>
 
-    <script type="module">
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        userNameLabel.textContent = user.displayName;
+        if (user.photoURL) {
+            userAvatarSmall.src = user.photoURL;
+            userAvatarSmall.style.display = "inline-block";
+        }
+    } else {
+        // Try auto popup
+        signInWithPopup(auth, provider)
+            .then((result) => {
+                const user = result.user;
+                userNameLabel.textContent = user.displayName;
+                userAvatarSmall.src = user.photoURL;
+                userAvatarSmall.style.display = "inline-block";
+            })
+            .catch((error) => {
+                console.log("Popup blocked:", error.code);
+                // Show fallback button
+                document.getElementById("fallbackLogin").style.display = "block";
+                userNameLabel.textContent = "Login required";
+            });
+    }
+});
+
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
         import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } 
