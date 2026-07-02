@@ -202,10 +202,32 @@
 </head>
 
 <body class="dark">
+    <div id="schoolScreen" style="display:none; padding:20px; font-family:system-ui;">
+    <h2>School Access Portal</h2>
+    <p>Enter your school code to continue:</p>
+
+    <input id="schoolCodeInput" 
+           placeholder="Enter code..." 
+           style="padding:8px; font-size:16px; width:200px;">
+
+    <button onclick="processSchoolCode()" 
+            style="padding:8px 12px; font-size:16px; margin-left:10px;">
+        Go
+    </button>
+
+    <p id="schoolError" style="color:red; margin-top:10px; display:none;">
+        Incorrect code
+    </p>
+</div>
+
     <div class="sidebar">
         <div class="home-btn" onclick="window.location.href='https://realyosuns.github.io/room.29.ludi.practise/'">🏠 Home</div>
         <h2>Room 29</h2>
         <div class="channel active"># general</div>
+         <button class="login-btn" onclick="toggleSchoolMode()">
+        School Mode
+    </button>
+</div>
 
         <!-- Fallback login button (appears if popup is blocked) -->
         <button id="fallbackLogin" class="login-btn" onclick="googleLogin()" style="display:none;">
@@ -234,6 +256,20 @@
     </div>
 
     <script type="module">
+        window.processSchoolCode = function () {
+    const code = document.getElementById("schoolCodeInput").value.trim();
+    const error = document.getElementById("schoolError");
+
+    if (code === "111t") {
+        window.location.href = "https://toddleapp.com";
+    } else if (code === "222l") {
+        window.location.href = "https://ludi.nz";
+    } else {
+        error.style.display = "block";
+        setTimeout(() => error.style.display = "none", 2000);
+    }
+};
+
         import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
         import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } 
