@@ -1,1 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Practise Hub</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
 
+<body>
+    <header>
+        <h1>Practise Hub</h1>
+        <p>All practise activities and tools</p>
+    </header>
+
+    <section class="main">
+        <h2>Practise List</h2>
+        <p>Add your practise items here.</p>
+    </section>
+</body>
+</html>
