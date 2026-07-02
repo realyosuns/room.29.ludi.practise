@@ -1,0 +1,91 @@
+<head>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+</head>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBCLNLLSe-ex6lo60P3wDQ-_n510dnM-nc",
+        authDomain: "room29practise.firebaseapp.com",
+        databaseURL: "https://room29practise-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "room29practise",
+        storageBucket: "room29practise.firebasestorage.app",
+        messagingSenderId: "109147297724",
+        appId: "1:109147297724:web:ac7ba4419a7c0a1f33fdb9"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    var db = firebase.database();
+</script>
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Chat Room</title>
+
+    <!-- Correct Firebase SDK for GitHub Pages -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <style>
+        body { font-family: Arial; background: #f0f0f0; padding: 20px; }
+        #messages { background: white; padding: 10px; height: 300px; overflow-y: scroll; border: 1px solid #ccc; }
+        #input { margin-top: 10px; }
+        input { padding: 5px; }
+        button { padding: 5px 10px; }
+    </style>
+</head>
+
+<body>
+
+    <h1>Chat Room</h1>
+
+    <div id="messages"></div>
+
+    <div id="input">
+        <input id="name" placeholder="Your name">
+        <input id="msg" placeholder="Message">
+        <button onclick="send()">Send</button>
+    </div>
+
+    <script>
+        // Your Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyBCLNLLSe-ex6lo60P3wDQ-_n510dnM-nc",
+            authDomain: "room29practise.firebaseapp.com",
+            databaseURL: "https://room29practise-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "room29practise",
+            storageBucket: "room29practise.firebasestorage.app",
+            messagingSenderId: "109147297724",
+            appId: "1:109147297724:web:ac7ba4419a7c0a1f33fdb9"
+        };
+
+        // Connect to Firebase
+        firebase.initializeApp(firebaseConfig);
+        var db = firebase.database();
+
+        // Send message
+        function send() {
+            var name = document.getElementById("name").value;
+            var msg = document.getElementById("msg").value;
+
+            if (name.trim() === "" || msg.trim() === "") return;
+
+            db.ref("messages").push({
+                name: name,
+                text: msg
+            });
+
+            document.getElementById("msg").value = "";
+        }
+
+        // Receive messages
+        db.ref("messages").on("child_added", function(snapshot) {
+            var data = snapshot.val();
+            var messages = document.getElementById("messages");
+            messages.innerHTML += "<p><b>" + data.name + ":</b> " + data.text + "</p>";
+        });
+    </script>
+
+</body>
+</html>
