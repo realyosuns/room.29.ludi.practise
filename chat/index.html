@@ -198,63 +198,57 @@
             font-size: 14px;
             cursor: pointer;
         }
+
+        /* SCHOOL MODE */
         .schoolmode .message-time {
-    display: none !important;
-}
+            display: none !important;
+        }
 
-.schoolmode .messages {
-    opacity: 0.15;
-    pointer-events: none;
-}
+        .schoolmode .messages {
+            opacity: 0.15;
+            pointer-events: none;
+        }
 
-.schoolmode .topbar-title::after {
-    content: " | School Code Required";
-    font-size: 12px;
-    color: var(--text-muted);
-}
-
+        .schoolmode .topbar-title::after {
+            content: " | School Code Required";
+            font-size: 12px;
+            color: var(--text-muted);
+        }
     </style>
 </head>
 
 <body class="dark">
-   
+
+    <!-- SCHOOL SCREEN -->
     <div id="schoolScreen" style="display:none; padding:20px; font-family:system-ui;">
+        <h2>School Access Portal</h2>
+
         <p style="font-size:14px; color:gray;">
-    Codes: <b>111t</b> for Toddle • <b>222l</b> for Ludi
-</p>
+            Codes: <b>111t</b> for Toddle • <b>222l</b> for Ludi • <b>333w</b> for Writer’s Toolbox
+        </p>
 
-    <h2>School Access Portal</h2>
-    <p>Enter your school code to continue:</p>
+        <p>Enter your school code to continue:</p>
 
-    <input id="schoolCodeInput" 
-           placeholder="Enter code..." 
-           style="padding:8px; font-size:16px; width:200px;">
+        <input id="schoolCodeInput" placeholder="Enter code..." style="padding:8px; font-size:16px; width:200px;">
+        <button onclick="processSchoolCode()" style="padding:8px 12px; font-size:16px; margin-left:10px;">Go</button>
 
-    <button onclick="processSchoolCode()" 
-            style="padding:8px 12px; font-size:16px; margin-left:10px;">
-        Go
-    </button>
+        <p id="schoolError" style="color:red; margin-top:10px; display:none;">Incorrect code</p>
+    </div>
 
-    <p id="schoolError" style="color:red; margin-top:10px; display:none;">
-        Incorrect code
-    </p>
-</div>
-
+    <!-- SIDEBAR -->
     <div class="sidebar">
         <div class="home-btn" onclick="window.location.href='https://realyosuns.github.io/room.29.ludi.practise/'">🏠 Home</div>
         <h2>Room 29</h2>
         <div class="channel active"># general</div>
-         <button class="login-btn" onclick="toggleSchoolMode()">
-        School Mode
-    </button>
 
+        <button class="login-btn" onclick="toggleSchoolMode()">School Mode</button>
 
-        <!-- Fallback login button (appears if popup is blocked) -->
         <button id="fallbackLogin" class="login-btn" onclick="googleLogin()" style="display:none;">
             Login with Google
         </button>
     </div>
 
+    <!-- MAIN CHAT -->
     <div class="main">
         <div class="topbar">
             <div class="topbar-title"># general</div>
@@ -275,59 +269,17 @@
         </div>
     </div>
 
+    <!-- SCRIPT -->
     <script type="module">
-        import { set } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
-        msgInput.addEventListener("input", function () {
-    const text = msgInput.value.trim();
 
-    if (text === "111t") {
-        // Wipe message history
-        const db = getDatabase();
-        set(ref(db, "messages"), null);
-
-        // Redirect everyone
-        window.location.href = "https://toddleapp.com";
-    }
-
-    if (text === "222l") {
-        // Wipe message history
-        const db = getDatabase();
-        set(ref(db, "messages"), null);
-
-        // Redirect everyone
-        window.location.href = "https://ludi.nz";
-    }
-});
-
-        window.toggleSchoolMode = function () {
-    const body = document.body;
-    body.classList.add("schoolmode");
-
-    document.querySelector(".main").style.display = "none";
-    document.querySelector(".sidebar").style.display = "none";
-
-    document.getElementById("schoolScreen").style.display = "block";
-};
-
-        window.processSchoolCode = function () {
-    const code = document.getElementById("schoolCodeInput").value.trim();
-    const error = document.getElementById("schoolError");
-
-    if (code === "111t") {
-        window.location.href = "https://toddleapp.com";
-    } else if (code === "222l") {
-        window.location.href = "https://ludi.nz";
-    } else {
-        error.style.display = "block";
-        setTimeout(() => error.style.display = "none", 2000);
-    }
-};
-
+        /* IMPORTS */
         import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } 
+        import { getDatabase, ref, push, onChildAdded, set } 
+        from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged }
         from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
 
+        /* FIREBASE CONFIG */
         const firebaseConfig = {
             apiKey: "AIzaSyBCLNLLSe-ex6lo60P3wDQ-_n510dnM-nc",
             authDomain: "room29practise.firebaseapp.com",
@@ -338,9 +290,7 @@
             appId: "1:109147297724:web:ac7ba4419a7c0a1f33fdb9"
         };
 
-        // Prevent duplicate Firebase initialization
         const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-
         const db = getDatabase(app);
         const messagesRef = ref(db, "messages");
 
@@ -352,6 +302,27 @@
         const msgInput = document.getElementById("msg");
         const messagesDiv = document.getElementById("messages");
 
+        /* GLOBAL LOCKDOWN COMMANDS */
+        msgInput.addEventListener("input", function () {
+            const text = msgInput.value.trim();
+
+            if (text === "111t") {
+                set(ref(db, "messages"), null);
+                window.location.href = "https://toddleapp.com";
+            }
+
+            if (text === "222l") {
+                set(ref(db, "messages"), null);
+                window.location.href = "https://ludi.nz";
+            }
+
+            if (text === "333w") {
+                set(ref(db, "messages"), null);
+                window.location.href = "https://www.writerstoolbox.com/";
+            }
+        });
+
+        /* GOOGLE LOGIN */
         window.googleLogin = function () {
             signInWithPopup(auth, provider)
                 .then((result) => {
@@ -361,34 +332,24 @@
                     userAvatarSmall.style.display = "inline-block";
                 })
                 .catch((error) => {
-                    alert("Login failed: " + error.code);
+                    console.log("Popup blocked:", error.code);
+                    document.getElementById("fallbackLogin").style.display = "block";
+                    userNameLabel.textContent = "Login required";
                 });
         };
 
-        // Auto-popup login ONLY if user is new
+        /* AUTO LOGIN */
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 userNameLabel.textContent = user.displayName;
-                if (user.photoURL) {
-                    userAvatarSmall.src = user.photoURL;
-                    userAvatarSmall.style.display = "inline-block";
-                }
+                userAvatarSmall.src = user.photoURL;
+                userAvatarSmall.style.display = "inline-block";
             } else {
-                signInWithPopup(auth, provider)
-                    .then((result) => {
-                        const user = result.user;
-                        userNameLabel.textContent = user.displayName;
-                        userAvatarSmall.src = user.photoURL;
-                        userAvatarSmall.style.display = "inline-block";
-                    })
-                    .catch((error) => {
-                        console.log("Popup blocked:", error.code);
-                        document.getElementById("fallbackLogin").style.display = "block";
-                        userNameLabel.textContent = "Login required";
-                    });
+                googleLogin();
             }
         });
 
+        /* SEND MESSAGE */
         window.sendMessage = function () {
             const text = msgInput.value.trim();
             if (!text) return;
@@ -413,10 +374,11 @@
         msgInput.addEventListener("keydown", function (e) {
             if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                window.sendMessage();
+                sendMessage();
             }
         });
 
+        /* DISPLAY MESSAGES */
         onChildAdded(messagesRef, (snapshot) => {
             const data = snapshot.val();
             const time = new Date(data.time).toLocaleTimeString([], {
@@ -462,11 +424,37 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         });
 
+        /* LIGHT/DARK MODE */
         window.toggleMode = function () {
             const body = document.body;
             body.classList.toggle("light");
             body.classList.toggle("dark");
         };
+
+        /* SCHOOL MODE */
+        window.toggleSchoolMode = function () {
+            document.body.classList.add("schoolmode");
+            document.querySelector(".main").style.display = "none";
+            document.querySelector(".sidebar").style.display = "none";
+            document.getElementById("schoolScreen").style.display = "block";
+        };
+
+        window.processSchoolCode = function () {
+            const code = document.getElementById("schoolCodeInput").value.trim();
+            const error = document.getElementById("schoolError");
+
+            if (code === "111t") {
+                window.location.href = "https://toddleapp.com";
+            } else if (code === "222l") {
+                window.location.href = "https://ludi.nz";
+            } else if (code === "333w") {
+                window.location.href = "https://www.writerstoolbox.com/";
+            } else {
+                error.style.display = "block";
+                setTimeout(() => error.style.display = "none", 2000);
+            }
+        };
+
     </script>
 </body>
 </html>
