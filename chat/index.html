@@ -3,9 +3,60 @@
 <head>
     <title>Room 29 Chat</title>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <!-- Modern Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+        import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBCLNLLSe-ex6lo60P3wDQ-_n510dnM-nc",
+            authDomain: "room29practise.firebaseapp.com",
+            databaseURL: "https://room29practise-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "room29practise",
+            storageBucket: "room29practise.firebasestorage.app",
+            messagingSenderId: "109147297724",
+            appId: "1:109147297724:web:ac7ba4419a7c0a1f33fdb9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const messagesRef = ref(db, "messages");
+
+        window.sendMessage = function () {
+            const name = document.getElementById("name").value.trim();
+            const msg = document.getElementById("msg").value.trim();
+            if (!name || !msg) return;
+
+            push(messagesRef, {
+                name: name,
+                text: msg,
+                time: Date.now()
+            });
+
+            document.getElementById("msg").value = "";
+        };
+
+        onChildAdded(messagesRef, (snapshot) => {
+            const data = snapshot.val();
+            const messages = document.getElementById("messages");
+
+            const time = new Date(data.time).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+
+            const div = document.createElement("div");
+            div.className = "message";
+            div.innerHTML = `
+                <span class="message-name">${data.name}</span>
+                <span class="message-text">${data.text}</span>
+                <span class="message-time">${time}</span>
+            `;
+
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        });
+    </script>
 
     <style>
         :root {
@@ -30,7 +81,7 @@
 
         body {
             margin: 0;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-family: system-ui;
             background: var(--bg);
             color: var(--text);
             display: flex;
@@ -40,26 +91,14 @@
         .sidebar {
             width: 220px;
             background: #18191c;
-            color: #dcddde;
             padding: 12px;
-            box-sizing: border-box;
         }
 
-        .sidebar h2 {
+        .home-btn {
+            cursor: pointer;
             font-size: 16px;
-            margin: 0 0 10px;
-        }
-
-        .channel {
-            padding: 6px 8px;
-            border-radius: 4px;
-            font-size: 14px;
-            color: #b9bbbe;
-        }
-
-        .channel.active {
-            background: #3f4248;
-            color: #ffffff;
+            margin-bottom: 20px;
+            color: #fff;
         }
 
         .main {
@@ -67,7 +106,6 @@
             display: flex;
             flex-direction: column;
             background: var(--bg-alt);
-            border-left: 1px solid var(--border);
         }
 
         .topbar {
@@ -77,26 +115,20 @@
             align-items: center;
             justify-content: space-between;
             padding: 0 16px;
-            box-sizing: border-box;
-        }
-
-        .topbar-title {
-            font-weight: 600;
         }
 
         .mode-toggle {
-            font-size: 13px;
-            color: var(--text-muted);
             cursor: pointer;
             padding: 4px 8px;
-            border-radius: 4px;
             border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 13px;
+            color: var(--text-muted);
         }
 
         .messages {
             flex: 1;
             padding: 16px;
-            box-sizing: border-box;
             overflow-y: auto;
         }
 
@@ -110,30 +142,20 @@
             margin-right: 6px;
         }
 
-        .message-text {
-            color: var(--text);
-        }
-
         .message-time {
             font-size: 11px;
             color: var(--text-muted);
-            margin-left: 4px;
+            margin-left: 6px;
         }
 
         .input-area {
             border-top: 1px solid var(--border);
             padding: 10px 16px;
-            box-sizing: border-box;
-            background: var(--bg-alt);
         }
 
         .input-row {
             display: flex;
             gap: 8px;
-        }
-
-        .name-input {
-            width: 140px;
         }
 
         input, textarea {
@@ -142,12 +164,6 @@
             color: var(--text);
             padding: 8px;
             border-radius: 4px;
-            font-size: 14px;
-            outline: none;
-        }
-
-        input::placeholder, textarea::placeholder {
-            color: var(--text-muted);
         }
 
         textarea {
@@ -162,27 +178,21 @@
             color: white;
             padding: 8px 14px;
             border-radius: 4px;
-            font-size: 14px;
             cursor: pointer;
-        }
-
-        button:hover {
-            filter: brightness(1.1);
         }
     </style>
 </head>
-<body class="dark">
 
+<body class="dark">
     <div class="sidebar">
+        <div class="home-btn" onclick="window.location.href='https://realyosuns.github.io/room.29.ludi.practise/'">🏠 Home</div>
         <h2>Room 29</h2>
-        <div class="channel active"># general</div>
-        <div class="channel"># homework</div>
-        <div class="channel"># games</div>
+        <div># general</div>
     </div>
 
     <div class="main">
         <div class="topbar">
-            <div class="topbar-title"># general</div>
+            <div># general</div>
             <div class="mode-toggle" onclick="toggleMode()">Toggle light/dark</div>
         </div>
 
@@ -190,91 +200,25 @@
 
         <div class="input-area">
             <div class="input-row">
-                <input id="name" class="name-input" placeholder="Your name">
+                <input id="name" placeholder="Your name">
                 <textarea id="msg" placeholder="Type a message... (Enter to send)"></textarea>
-                <button onclick="send()">Send</button>
+                <button onclick="sendMessage()">Send</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Firebase config
-        const firebaseConfig = {
-            apiKey: "AIzaSyBCLNLLSe-ex6lo60P3wDQ-_n510dnM-nc",
-            authDomain: "room29practise.firebaseapp.com",
-            databaseURL: "https://room29practise-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "room29practise",
-            storageBucket: "room29practise.firebasestorage.app",
-            messagingSenderId: "109147297724",
-            appId: "1:109147297724:web:ac7ba4419a7c0a1f33fdb9"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        var db = firebase.database();
-
-        function send() {
-            var name = document.getElementById("name").value.trim();
-            var msg = document.getElementById("msg").value.trim();
-
-            if (!name || !msg) return;
-
-            db.ref("messages").push({
-                name: name,
-                text: msg,
-                time: Date.now()
-            });
-
-            document.getElementById("msg").value = "";
-        }
-
-        // Enter to send
         document.getElementById("msg").addEventListener("keydown", function(e) {
             if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                send();
+                sendMessage();
             }
-        });
-
-        // Render messages
-        db.ref("messages").on("child_added", function(snapshot) {
-            var data = snapshot.val();
-            var messages = document.getElementById("messages");
-
-            var date = new Date(data.time || Date.now());
-            var timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            var div = document.createElement("div");
-            div.className = "message";
-            div.innerHTML =
-                "<span class='message-name'>" + escapeHtml(data.name) + "</span>" +
-                "<span class='message-text'>" + escapeHtml(data.text) + "</span>" +
-                "<span class='message-time'>" + timeStr + "</span>";
-
-            messages.appendChild(div);
-            messages.scrollTop = messages.scrollHeight;
         });
 
         function toggleMode() {
             const body = document.body;
-            if (body.classList.contains("dark")) {
-                body.classList.remove("dark");
-                body.classList.add("light");
-            } else {
-                body.classList.remove("light");
-                body.classList.add("dark");
-            }
-        }
-
-        function escapeHtml(str) {
-            return str.replace(/[&<>"']/g, function(m) {
-                return ({
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#39;'
-                })[m];
-            });
+            body.classList.toggle("light");
+            body.classList.toggle("dark");
         }
     </script>
 </body>
