@@ -198,10 +198,33 @@
             font-size: 14px;
             cursor: pointer;
         }
+        .schoolmode .message-time {
+    display: none !important;
+}
+
+.schoolmode .messages {
+    opacity: 0.15;
+    pointer-events: none;
+}
+
+.schoolmode .topbar-title::after {
+    content: " | School Code Required";
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
     </style>
 </head>
 
 <body class="dark">
+    <div id="schoolScreen" style="display:none; padding:20px;">
+  <h2>School Access Portal</h2>
+  <p>Enter your school code:</p>
+  <input id="schoolCodeInput" placeholder="Enter code...">
+  <button onclick="processSchoolCode()">Go</button>
+  <p id="schoolError" style="color:red; display:none;">Incorrect code</p>
+</div>
+
     <div id="schoolScreen" style="display:none; padding:20px; font-family:system-ui;">
     <h2>School Access Portal</h2>
     <p>Enter your school code to continue:</p>
@@ -256,6 +279,29 @@
     </div>
 
     <script type="module">
+        window.toggleSchoolMode = function () {
+    const body = document.body;
+    body.classList.add("schoolmode");
+
+    document.querySelector(".main").style.display = "none";
+    document.querySelector(".sidebar").style.display = "none";
+
+    document.getElementById("schoolScreen").style.display = "block";
+};
+window.processSchoolCode = function () {
+    const code = document.getElementById("schoolCodeInput").value.trim();
+    const error = document.getElementById("schoolError");
+
+    if (code === "111t") {
+        window.location.href = "https://toddleapp.com";
+    } else if (code === "222l") {
+        window.location.href = "https://ludi.nz";
+    } else {
+        error.style.display = "block";
+        setTimeout(() => error.style.display = "none", 2000);
+    }
+};
+
         window.processSchoolCode = function () {
     const code = document.getElementById("schoolCodeInput").value.trim();
     const error = document.getElementById("schoolError");
