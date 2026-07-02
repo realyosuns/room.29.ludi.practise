@@ -1,19 +1,273 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Practise Hub</title>
-    <link rel="stylesheet" href="../style.css">
+  <title>Tower Race v0.1</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      color: #fff;
+      font-family: system-ui;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #ui {
+      text-align: center;
+      padding: 10px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    #status {
+      margin-left: 10px;
+    }
+
+    #gameCanvas {
+      background: #222;
+      display: block;
+      margin: 0 auto;
+      border: 1px solid #444;
+    }
+  </style>
 </head>
-
 <body>
-    <header>
-        <h1>Practise Hub</h1>
-        <p>All practise activities and tools</p>
-    </header>
+  <div id="ui">
+    <button id="joinBtn">Join Game</button>
+    <span id="status">Not connected</span>
+  </div>
+  <canvas id="gameCanvas" width="600" height="800"></canvas>
 
-    <section class="main">
-        <h2>Practise List</h2>
-        <p>Add your practise items here.</p>
-    </section>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getDatabase, ref, get, onValue, set, update } 
+      from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+    // 🔧 TODO: put YOUR Firebase config here
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      databaseURL: "YOUR_DATABASE_URL",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // Firebase init
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Room setup
+    const ROOM_ID = "tower-room-1";
+    const roomRef = ref(db, "rooms/" + ROOM_ID);
+
+    // Canvas + UI
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const statusEl = document.getElementById("status");
+    const joinBtn = document.getElementById("joinBtn");
+
+    // Game state
+    let playerId = null;
+    let players = {};
+    let blocks = [];
+    let gameStarted = false;
+
+    const TOTAL_BLOCKS = 50; // change to 100 later if you want
+    const PLAYER_WIDTH = 20;
+    const PLAYER_HEIGHT = 20;
+
+    // Controls
+    const keys = {};
+    window.addEventListener("keydown", e => { keys[e.key] = true; });
+    window.addEventListener("keyup", e => { keys[e.key] = false; });
+
+    function randomColor() {
+      const colors = ["red","blue","green","yellow","purple","orange","cyan","magenta","lime","pink"];
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    // Create tower if it doesn't exist yet
+    async function createTowerIfNeeded() {
+      const snap = await get(roomRef);
+      const val = snap.val();
+
+      if (val && val.blocks) {
+        blocks = val.blocks;
+        players = val.players || {};
+        gameStarted = !!val.started;
+        return;
+      }
+
+      blocks = [];
+      const width = canvas.width;
+      const blockWidth = 100;
+      const blockHeight = 20;
+      const baseY = canvas.height - 80; // base platform height
+
+      for (let i = 0; i < TOTAL_BLOCKS; i++) {
+        const x = Math.random() * (width - blockWidth);
+        const y = baseY - i * 60; // 60px gap between platforms
+        blocks.push({ x, y, w: blockWidth, h: blockHeight });
+      }
+
+      await set(roomRef, {
+        blocks,
+        players: {},
+        started: true
+      });
+
+      gameStarted = true;
+    }
+
+    // Join game
+    joinBtn.onclick = async () => {
+      statusEl.textContent = "Joining...";
+
+      await createTowerIfNeeded();
+
+      const snap = await get(roomRef);
+      const val = snap.val() || {};
+      const currentPlayers = val.players || {};
+      const playerCount = Object.keys(currentPlayers).length;
+
+      if (playerCount >= 10) {
+        statusEl.textContent = "Room full (10 players max)";
+        return;
+      }
+
+      playerId = "p_" + Date.now();
+      const startX = canvas.width / 2;
+      const startY = canvas.height - 100;
+
+      const newPlayer = {
+        x: startX,
+        y: startY,
+        vx: 0,
+        vy: 0,
+        color: randomColor(),
+        alive: true
+      };
+
+      await update(roomRef, {
+        ["players/" + playerId]: newPlayer
+      });
+
+      statusEl.textContent = "Joined as " + playerId;
+    };
+
+    // Sync room from Firebase
+    onValue(roomRef, (snapshot) => {
+      const val = snapshot.val();
+      if (!val) return;
+
+      players = val.players || {};
+      blocks = val.blocks || [];
+      gameStarted = !!val.started;
+    });
+
+    // Physics helpers
+    function isOnBlock(p) {
+      return blocks.some(b =>
+        p.x > b.x &&
+        p.x < b.x + b.w &&
+        Math.abs((p.y + PLAYER_HEIGHT) - b.y) < 5
+      );
+    }
+
+    function updateLocalPlayer() {
+      if (!playerId || !players[playerId]) return;
+
+      const p = players[playerId];
+
+      const speed = 3;
+      const jumpPower = -10;
+      const gravity = 0.5;
+
+      // horizontal movement
+      if (keys["ArrowLeft"] || keys["a"]) p.vx = -speed;
+      else if (keys["ArrowRight"] || keys["d"]) p.vx = speed;
+      else p.vx = 0;
+
+      // jump
+      if ((keys["ArrowUp"] || keys["w"] || keys[" "]) && isOnBlock(p)) {
+        p.vy = jumpPower;
+      }
+
+      // gravity
+      p.vy += gravity;
+
+      // move
+      p.x += p.vx;
+      p.y += p.vy;
+
+      // world bounds
+      if (p.x < 0) p.x = 0;
+      if (p.x > canvas.width - PLAYER_WIDTH) p.x = canvas.width - PLAYER_WIDTH;
+
+      // floor
+      if (p.y > canvas.height - 60) {
+        p.y = canvas.height - 60;
+        p.vy = 0;
+      }
+
+      // block collisions (simple)
+      blocks.forEach(b => {
+        const feetY = p.y + PLAYER_HEIGHT;
+        if (
+          p.x + PLAYER_WIDTH > b.x &&
+          p.x < b.x + b.w &&
+          feetY > b.y &&
+          feetY < b.y + b.h
+        ) {
+          p.y = b.y - PLAYER_HEIGHT;
+          p.vy = 0;
+        }
+      });
+
+      // win check: reach top block
+      const topBlock = blocks[blocks.length - 1];
+      if (topBlock && p.y <= topBlock.y - PLAYER_HEIGHT) {
+        statusEl.textContent = "YOU REACHED THE TOP!";
+      }
+
+      // push updated player to Firebase
+      update(roomRef, {
+        ["players/" + playerId]: p
+      });
+    }
+
+    // Draw everything
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // background
+      ctx.fillStyle = "#222";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // blocks
+      ctx.fillStyle = "#555";
+      blocks.forEach(b => {
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+      });
+
+      // players
+      Object.keys(players).forEach(id => {
+        const p = players[id];
+        ctx.fillStyle = p.color || "white";
+        ctx.fillRect(p.x, p.y, PLAYER_WIDTH, PLAYER_HEIGHT);
+      });
+    }
+
+    function loop() {
+      updateLocalPlayer();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    loop();
+  </script>
 </body>
 </html>
