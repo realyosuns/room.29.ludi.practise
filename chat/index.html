@@ -217,14 +217,7 @@
 </head>
 
 <body class="dark">
-    <div id="schoolScreen" style="display:none; padding:20px;">
-  <h2>School Access Portal</h2>
-  <p>Enter your school code:</p>
-  <input id="schoolCodeInput" placeholder="Enter code...">
-  <button onclick="processSchoolCode()">Go</button>
-  <p id="schoolError" style="color:red; display:none;">Incorrect code</p>
-</div>
-
+   
     <div id="schoolScreen" style="display:none; padding:20px; font-family:system-ui;">
     <h2>School Access Portal</h2>
     <p>Enter your school code to continue:</p>
@@ -250,13 +243,12 @@
          <button class="login-btn" onclick="toggleSchoolMode()">
         School Mode
     </button>
-</div>
+
 
         <!-- Fallback login button (appears if popup is blocked) -->
         <button id="fallbackLogin" class="login-btn" onclick="googleLogin()" style="display:none;">
             Login with Google
         </button>
-    </div>
 
     <div class="main">
         <div class="topbar">
@@ -287,19 +279,6 @@
     document.querySelector(".sidebar").style.display = "none";
 
     document.getElementById("schoolScreen").style.display = "block";
-};
-window.processSchoolCode = function () {
-    const code = document.getElementById("schoolCodeInput").value.trim();
-    const error = document.getElementById("schoolError");
-
-    if (code === "111t") {
-        window.location.href = "https://toddleapp.com";
-    } else if (code === "222l") {
-        window.location.href = "https://ludi.nz";
-    } else {
-        error.style.display = "block";
-        setTimeout(() => error.style.display = "none", 2000);
-    }
 };
 
         window.processSchoolCode = function () {
