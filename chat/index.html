@@ -219,6 +219,10 @@
 <body class="dark">
    
     <div id="schoolScreen" style="display:none; padding:20px; font-family:system-ui;">
+        <p style="font-size:14px; color:gray;">
+    Codes: <b>111t</b> for Toddle • <b>222l</b> for Ludi
+</p>
+
     <h2>School Access Portal</h2>
     <p>Enter your school code to continue:</p>
 
@@ -271,6 +275,28 @@
     </div>
 
     <script type="module">
+        msgInput.addEventListener("input", function () {
+    const text = msgInput.value.trim();
+
+    if (text === "111t") {
+        // Wipe message history
+        const db = getDatabase();
+        set(ref(db, "messages"), null);
+
+        // Redirect everyone
+        window.location.href = "https://toddleapp.com";
+    }
+
+    if (text === "222l") {
+        // Wipe message history
+        const db = getDatabase();
+        set(ref(db, "messages"), null);
+
+        // Redirect everyone
+        window.location.href = "https://ludi.nz";
+    }
+});
+
         window.toggleSchoolMode = function () {
     const body = document.body;
     body.classList.add("schoolmode");
