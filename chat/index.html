@@ -1,55 +1,204 @@
-<head>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-</head>
-
-<script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyBCLNLLSe-ex6lo60P3wDQ-_n510dnM-nc",
-        authDomain: "room29practise.firebaseapp.com",
-        databaseURL: "https://room29practise-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "room29practise",
-        storageBucket: "room29practise.firebasestorage.app",
-        messagingSenderId: "109147297724",
-        appId: "1:109147297724:web:ac7ba4419a7c0a1f33fdb9"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    var db = firebase.database();
-</script>
 <!DOCTYPE html>
 <html>
-
 <head>
-    <title>Chat Room</title>
+    <title>Room 29 Chat</title>
 
-    <!-- Correct Firebase SDK for GitHub Pages -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <style>
-        body { font-family: Arial; background: #f0f0f0; padding: 20px; }
-        #messages { background: white; padding: 10px; height: 300px; overflow-y: scroll; border: 1px solid #ccc; }
-        #input { margin-top: 10px; }
-        input { padding: 5px; }
-        button { padding: 5px 10px; }
+        :root {
+            --bg: #202225;
+            --bg-alt: #2f3136;
+            --text: #ffffff;
+            --text-muted: #b9bbbe;
+            --accent: #5865f2;
+            --input-bg: #40444b;
+            --border: #18191c;
+        }
+
+        .light {
+            --bg: #f3f4f6;
+            --bg-alt: #ffffff;
+            --text: #111827;
+            --text-muted: #6b7280;
+            --accent: #3b82f6;
+            --input-bg: #e5e7eb;
+            --border: #d1d5db;
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 220px;
+            background: #18191c;
+            color: #dcddde;
+            padding: 12px;
+            box-sizing: border-box;
+        }
+
+        .sidebar h2 {
+            font-size: 16px;
+            margin: 0 0 10px;
+        }
+
+        .channel {
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #b9bbbe;
+        }
+
+        .channel.active {
+            background: #3f4248;
+            color: #ffffff;
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-alt);
+            border-left: 1px solid var(--border);
+        }
+
+        .topbar {
+            height: 48px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            box-sizing: border-box;
+        }
+
+        .topbar-title {
+            font-weight: 600;
+        }
+
+        .mode-toggle {
+            font-size: 13px;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .messages {
+            flex: 1;
+            padding: 16px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .message-name {
+            font-weight: 600;
+            margin-right: 6px;
+        }
+
+        .message-text {
+            color: var(--text);
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
+
+        .input-area {
+            border-top: 1px solid var(--border);
+            padding: 10px 16px;
+            box-sizing: border-box;
+            background: var(--bg-alt);
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .name-input {
+            width: 140px;
+        }
+
+        input, textarea {
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        textarea {
+            flex: 1;
+            resize: none;
+            height: 50px;
+        }
+
+        button {
+            background: var(--accent);
+            border: none;
+            color: white;
+            padding: 8px 14px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            filter: brightness(1.1);
+        }
     </style>
 </head>
+<body class="dark">
 
-<body>
+    <div class="sidebar">
+        <h2>Room 29</h2>
+        <div class="channel active"># general</div>
+        <div class="channel"># homework</div>
+        <div class="channel"># games</div>
+    </div>
 
-    <h1>Chat Room</h1>
+    <div class="main">
+        <div class="topbar">
+            <div class="topbar-title"># general</div>
+            <div class="mode-toggle" onclick="toggleMode()">Toggle light/dark</div>
+        </div>
 
-    <div id="messages"></div>
+        <div id="messages" class="messages"></div>
 
-    <div id="input">
-        <input id="name" placeholder="Your name">
-        <input id="msg" placeholder="Message">
-        <button onclick="send()">Send</button>
+        <div class="input-area">
+            <div class="input-row">
+                <input id="name" class="name-input" placeholder="Your name">
+                <textarea id="msg" placeholder="Type a message... (Enter to send)"></textarea>
+                <button onclick="send()">Send</button>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Your Firebase config
+        // Firebase config
         const firebaseConfig = {
             apiKey: "AIzaSyBCLNLLSe-ex6lo60P3wDQ-_n510dnM-nc",
             authDomain: "room29practise.firebaseapp.com",
@@ -60,32 +209,73 @@
             appId: "1:109147297724:web:ac7ba4419a7c0a1f33fdb9"
         };
 
-        // Connect to Firebase
         firebase.initializeApp(firebaseConfig);
         var db = firebase.database();
 
-        // Send message
         function send() {
-            var name = document.getElementById("name").value;
-            var msg = document.getElementById("msg").value;
+            var name = document.getElementById("name").value.trim();
+            var msg = document.getElementById("msg").value.trim();
 
-            if (name.trim() === "" || msg.trim() === "") return;
+            if (!name || !msg) return;
 
             db.ref("messages").push({
                 name: name,
-                text: msg
+                text: msg,
+                time: Date.now()
             });
 
             document.getElementById("msg").value = "";
         }
 
-        // Receive messages
+        // Enter to send
+        document.getElementById("msg").addEventListener("keydown", function(e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                send();
+            }
+        });
+
+        // Render messages
         db.ref("messages").on("child_added", function(snapshot) {
             var data = snapshot.val();
             var messages = document.getElementById("messages");
-            messages.innerHTML += "<p><b>" + data.name + ":</b> " + data.text + "</p>";
-        });
-    </script>
 
+            var date = new Date(data.time || Date.now());
+            var timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            var div = document.createElement("div");
+            div.className = "message";
+            div.innerHTML =
+                "<span class='message-name'>" + escapeHtml(data.name) + "</span>" +
+                "<span class='message-text'>" + escapeHtml(data.text) + "</span>" +
+                "<span class='message-time'>" + timeStr + "</span>";
+
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        });
+
+        function toggleMode() {
+            const body = document.body;
+            if (body.classList.contains("dark")) {
+                body.classList.remove("dark");
+                body.classList.add("light");
+            } else {
+                body.classList.remove("light");
+                body.classList.add("dark");
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, function(m) {
+                return ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                })[m];
+            });
+        }
+    </script>
 </body>
 </html>
