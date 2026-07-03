@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Tower Race v0.6</title>
+  <title>Tower Race v0.7 (Beatable)</title>
   <style>
     body {
       margin: 0;
@@ -48,7 +48,6 @@
     import { getAuth, signInWithPopup, GoogleAuthProvider }
       from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
 
-    /* ⭐ Firebase Config */
     const firebaseConfig = {
       apiKey: "AIzaSyBCLNLLSe-ex6lo60P3wDQ-_n510dnM-nc",
       authDomain: "room29practise.firebaseapp.com",
@@ -62,12 +61,37 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    /* ⭐ Auth */
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     let userEmail = null;
 
-    /* ⭐ Fix infinite login loop */
+    const ROOM_ID = "tower-room-1";
+    const roomRef = ref(db, "rooms/" + ROOM_ID);
+
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const statusEl = document.getElementById("status");
+    const joinBtn = document.getElementById("joinBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    let playerId = null;
+    let players = {};
+    let blocks = [];
+    let gameStarted = false;
+
+    const TOTAL_BLOCKS = 40;
+    const PLAYER_WIDTH = 20;
+    const PLAYER_HEIGHT = 20;
+
+    // tuned difficulty
+    const MAX_X_GAP = 120;   // tighter sideways
+    const MAX_Y_GAP = 55;    // max vertical gap
+    const MIN_Y_GAP = 30;    // min vertical gap
+
+    const keys = {};
+    window.addEventListener("keydown", e => keys[e.key] = true);
+    window.addEventListener("keyup", e => keys[e.key] = false);
+
     auth.onAuthStateChanged((user) => {
       if (user) {
         userEmail = user.email;
@@ -75,42 +99,11 @@
       }
     });
 
-    /* ⭐ Room Setup */
-    const ROOM_ID = "tower-room-1";
-    const roomRef = ref(db, "rooms/" + ROOM_ID);
-
-    /* ⭐ Canvas + UI */
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    const statusEl = document.getElementById("status");
-    const joinBtn = document.getElementById("joinBtn");
-    const resetBtn = document.getElementById("resetBtn");
-
-    /* ⭐ Game State */
-    let playerId = null;
-    let players = {};
-    let blocks = [];
-    let gameStarted = false;
-
-    const TOTAL_BLOCKS = 50;
-    const PLAYER_WIDTH = 20;
-    const PLAYER_HEIGHT = 20;
-
-    /* ⭐ Controlled generation settings */
-    const MAX_X_GAP = 150;   // max horizontal distance between blocks
-    const MAX_Y_GAP = 70;    // max vertical distance between blocks
-    const MIN_Y_GAP = 40;    // minimum vertical spacing
-
-    const keys = {};
-    window.addEventListener("keydown", e => keys[e.key] = true);
-    window.addEventListener("keyup", e => keys[e.key] = false);
-
     function randomColor() {
       const colors = ["red","blue","green","yellow","purple","orange","cyan","magenta","lime","pink"];
       return colors[Math.floor(Math.random() * colors.length)];
     }
 
-    /* ⭐ Create Tower (with controlled generation) */
     async function createTowerIfNeeded() {
       const snap = await get(roomRef);
       const val = snap.val();
@@ -124,11 +117,10 @@
 
       blocks = [];
       const width = canvas.width;
-
       const blockWidth = 120;
       const blockHeight = 25;
 
-      /* ⭐ START BLOCK */
+      // start block
       blocks.push({
         x: (width - blockWidth) / 2,
         y: canvas.height - 50,
@@ -137,15 +129,14 @@
         type: "start"
       });
 
-      /* ⭐ Controlled tower generation */
       const baseY = canvas.height - 120;
       let lastX = (width - blockWidth) / 2;
       let lastY = baseY;
 
+      // controlled, beatable tower
       for (let i = 0; i < TOTAL_BLOCKS; i++) {
-
         let newX = lastX + (Math.random() * MAX_X_GAP * 2 - MAX_X_GAP);
-        newX = Math.max(0, Math.min(newX, width - blockWidth));
+        newX = Math.max(40, Math.min(newX, width - blockWidth - 40)); // keep away from edges
 
         let newY = lastY - (MIN_Y_GAP + Math.random() * (MAX_Y_GAP - MIN_Y_GAP));
 
@@ -161,9 +152,8 @@
         lastY = newY;
       }
 
-      /* ⭐ FINISH BLOCK */
-      const finishY = lastY - 80;
-
+      // finish block
+      const finishY = lastY - 70;
       blocks.push({
         x: (width - blockWidth) / 2,
         y: finishY,
@@ -181,9 +171,7 @@
       gameStarted = true;
     }
 
-    /* ⭐ Join Game (with login fix) */
     joinBtn.onclick = async () => {
-
       if (!auth.currentUser) {
         statusEl.textContent = "Signing in...";
         const result = await signInWithPopup(auth, provider);
@@ -230,7 +218,6 @@
       statusEl.textContent = "Joined as " + playerId;
     };
 
-    /* ⭐ Reset Room (ADMIN ONLY) */
     resetBtn.onclick = async () => {
       if (userEmail !== "lukesun222@gmail.com") {
         statusEl.textContent = "You do not have permission to reset the room.";
@@ -238,14 +225,11 @@
       }
 
       statusEl.textContent = "Resetting room...";
-
       await set(roomRef, null);
       await createTowerIfNeeded();
-
       statusEl.textContent = "Room reset!";
     };
 
-    /* ⭐ Sync Room */
     onValue(roomRef, (snapshot) => {
       const val = snapshot.val();
       if (!val) return;
@@ -255,26 +239,23 @@
       gameStarted = !!val.started;
     });
 
-    /* ⭐ Physics Helpers */
     function isOnBlock(p) {
       return blocks.some(b =>
-        p.x > b.x &&
+        p.x + PLAYER_WIDTH > b.x &&
         p.x < b.x + b.w &&
-        Math.abs((p.y + PLAYER_HEIGHT) - b.y) < 5
+        Math.abs((p.y + PLAYER_HEIGHT) - b.y) < 6
       );
     }
 
-    /* ⭐ Update Local Player */
     function updateLocalPlayer() {
       if (!playerId || !players[playerId]) return;
 
       const p = players[playerId];
 
       const speed = 3;
-      const jumpPower = -10;
+      const jumpPower = -12; // slightly higher jump
       const gravity = 0.5;
 
-      /* ⭐ Respawn Countdown */
       if (!p.alive) {
         p.vx = 0;
         p.vy = 0;
@@ -296,7 +277,6 @@
         return;
       }
 
-      /* ⭐ Movement */
       if (keys["ArrowLeft"] || keys["a"]) p.vx = -speed;
       else if (keys["ArrowRight"] || keys["d"]) p.vx = speed;
       else p.vx = 0;
@@ -313,13 +293,11 @@
       if (p.x < 0) p.x = 0;
       if (p.x > canvas.width - PLAYER_WIDTH) p.x = canvas.width - PLAYER_WIDTH;
 
-      /* ⭐ Fall → Death */
       if (p.y > canvas.height) {
         p.alive = false;
         p.respawnTimer = 180;
       }
 
-      /* ⭐ Block Collisions */
       blocks.forEach(b => {
         const feetY = p.y + PLAYER_HEIGHT;
         if (
@@ -333,25 +311,22 @@
         }
       });
 
-      /* ⭐ Win Check */
       const finishBlock = blocks.find(b => b.type === "finish");
       if (finishBlock && p.y <= finishBlock.y - PLAYER_HEIGHT) {
         statusEl.textContent = "🏆 YOU WIN!";
       }
 
-      update(roomRef, {
+      await update(roomRef, {
         ["players/" + playerId]: p
       });
     }
 
-    /* ⭐ Draw */
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       ctx.fillStyle = "#222";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      /* ⭐ Draw Blocks */
       blocks.forEach(b => {
         if (b.type === "start") ctx.fillStyle = "green";
         else if (b.type === "finish") ctx.fillStyle = "gold";
@@ -360,7 +335,6 @@
         ctx.fillRect(b.x, b.y, b.w, b.h);
       });
 
-      /* ⭐ Draw Players */
       Object.keys(players).forEach(id => {
         const p = players[id];
         if (!p.alive) ctx.globalAlpha = 0.4;
@@ -370,7 +344,6 @@
       });
     }
 
-    /* ⭐ Game Loop */
     function loop() {
       updateLocalPlayer();
       draw();
