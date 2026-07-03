@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Tower Race v0.4</title>
+  <title>Tower Race v0.5</title>
   <style>
     body {
       margin: 0;
@@ -66,6 +66,14 @@
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     let userEmail = null;
+
+    /* ⭐ Fix infinite login loop */
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        userEmail = user.email;
+        statusEl.textContent = "Signed in as " + userEmail;
+      }
+    });
 
     /* ⭐ Room Setup */
     const ROOM_ID = "tower-room-1";
@@ -153,12 +161,17 @@
       gameStarted = true;
     }
 
-    /* ⭐ Join Game (with Google Sign-In) */
+    /* ⭐ Join Game (with login fix) */
     joinBtn.onclick = async () => {
-      statusEl.textContent = "Signing in...";
 
-      const result = await signInWithPopup(auth, provider);
-      userEmail = result.user.email;
+      /* ⭐ If already signed in → skip popup */
+      if (!auth.currentUser) {
+        statusEl.textContent = "Signing in...";
+        const result = await signInWithPopup(auth, provider);
+        userEmail = result.user.email;
+      } else {
+        userEmail = auth.currentUser.email;
+      }
 
       statusEl.textContent = "Signed in as " + userEmail;
 
