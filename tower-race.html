@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Tower Race v0.1</title>
+  <title>Tower Race v0.2</title>
   <style>
     body {
       margin: 0;
@@ -35,6 +35,7 @@
 <body>
   <div id="ui">
     <button id="joinBtn">Join Game</button>
+    <button id="resetBtn">Reset Room</button>
     <span id="status">Not connected</span>
   </div>
   <canvas id="gameCanvas" width="600" height="800"></canvas>
@@ -44,32 +45,28 @@
     import { getDatabase, ref, get, onValue, set, update } 
       from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
-    /* ⭐ YOUR REAL FIREBASE CONFIG — WORKING ⭐ */
     const firebaseConfig = {
       apiKey: "AIzaSyBCLNLLSe-ex6lo60P3wDQ-_n510dnM-nc",
       authDomain: "room29practise.firebaseapp.com",
-      databaseURL: "https://room29practise-default-rtdb.asia-southeast1.firebasedatabase.app",
+      databaseURL: "https://room29practise-default-rtdb.firebaseio.com",
       projectId: "room29practise",
       storageBucket: "room29practise.firebasestorage.app",
       messagingSenderId: "109147297724",
       appId: "1:109147297724:web:ac7ba4419a7c0a1f33fdb9"
     };
 
-    /* ⭐ Firebase Init */
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    /* ⭐ Room Setup */
     const ROOM_ID = "tower-room-1";
     const roomRef = ref(db, "rooms/" + ROOM_ID);
 
-    /* ⭐ Canvas + UI */
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const statusEl = document.getElementById("status");
     const joinBtn = document.getElementById("joinBtn");
+    const resetBtn = document.getElementById("resetBtn");
 
-    /* ⭐ Game State */
     let playerId = null;
     let players = {};
     let blocks = [];
@@ -79,7 +76,6 @@
     const PLAYER_WIDTH = 20;
     const PLAYER_HEIGHT = 20;
 
-    /* ⭐ Controls */
     const keys = {};
     window.addEventListener("keydown", e => keys[e.key] = true);
     window.addEventListener("keyup", e => keys[e.key] = false);
@@ -89,7 +85,6 @@
       return colors[Math.floor(Math.random() * colors.length)];
     }
 
-    /* ⭐ Create Tower If Needed */
     async function createTowerIfNeeded() {
       const snap = await get(roomRef);
       const val = snap.val();
@@ -122,7 +117,6 @@
       gameStarted = true;
     }
 
-    /* ⭐ Join Game */
     joinBtn.onclick = async () => {
       statusEl.textContent = "Joining...";
 
@@ -148,7 +142,8 @@
         vx: 0,
         vy: 0,
         color: randomColor(),
-        alive: true
+        alive: true,
+        respawnTimer: 0
       };
 
       await update(roomRef, {
@@ -158,7 +153,13 @@
       statusEl.textContent = "Joined as " + playerId;
     };
 
-    /* ⭐ Sync Room */
+    resetBtn.onclick = async () => {
+      statusEl.textContent = "Resetting room...";
+      await set(roomRef, null);
+      await createTowerIfNeeded();
+      statusEl.textContent = "Room reset!";
+    };
+
     onValue(roomRef, (snapshot) => {
       const val = snapshot.val();
       if (!val) return;
@@ -168,7 +169,6 @@
       gameStarted = !!val.started;
     });
 
-    /* ⭐ Physics */
     function isOnBlock(p) {
       return blocks.some(b =>
         p.x > b.x &&
@@ -186,6 +186,27 @@
       const jumpPower = -10;
       const gravity = 0.5;
 
+      // respawn countdown
+      if (!p.alive) {
+        p.vx = 0;
+        p.vy = 0;
+
+        if (p.respawnTimer > 0) {
+          p.respawnTimer--;
+          statusEl.textContent = "Respawning in " + Math.ceil(p.respawnTimer / 60);
+        } else {
+          p.x = canvas.width / 2;
+          p.y = canvas.height - 100;
+          p.vx = 0;
+          p.vy = 0;
+          p.alive = true;
+          statusEl.textContent = "Respawned!";
+        }
+
+        update(roomRef, { ["players/" + playerId]: p });
+        return;
+      }
+
       if (keys["ArrowLeft"] || keys["a"]) p.vx = -speed;
       else if (keys["ArrowRight"] || keys["d"]) p.vx = speed;
       else p.vx = 0;
@@ -202,9 +223,10 @@
       if (p.x < 0) p.x = 0;
       if (p.x > canvas.width - PLAYER_WIDTH) p.x = canvas.width - PLAYER_WIDTH;
 
-      if (p.y > canvas.height - 60) {
-        p.y = canvas.height - 60;
-        p.vy = 0;
+      // fall → death
+      if (p.y > canvas.height) {
+        p.alive = false;
+        p.respawnTimer = 180; // 3 seconds at 60fps
       }
 
       blocks.forEach(b => {
@@ -230,7 +252,6 @@
       });
     }
 
-    /* ⭐ Draw */
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -244,12 +265,13 @@
 
       Object.keys(players).forEach(id => {
         const p = players[id];
+        if (!p.alive) ctx.globalAlpha = 0.4;
         ctx.fillStyle = p.color || "white";
         ctx.fillRect(p.x, p.y, PLAYER_WIDTH, PLAYER_HEIGHT);
+        ctx.globalAlpha = 1;
       });
     }
 
-    /* ⭐ Game Loop */
     function loop() {
       updateLocalPlayer();
       draw();
