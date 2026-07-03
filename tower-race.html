@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Tower Race v0.3</title>
+  <title>Tower Race v0.4</title>
   <style>
     body {
       margin: 0;
@@ -97,7 +97,7 @@
       return colors[Math.floor(Math.random() * colors.length)];
     }
 
-    /* ⭐ Create Tower */
+    /* ⭐ Create Tower (with start + finish blocks) */
     async function createTowerIfNeeded() {
       const snap = await get(roomRef);
       const val = snap.val();
@@ -111,15 +111,38 @@
 
       blocks = [];
       const width = canvas.width;
-      const blockWidth = 100;
-      const blockHeight = 20;
-      const baseY = canvas.height - 80;
+
+      const blockWidth = 120;
+      const blockHeight = 25;
+
+      /* ⭐ START BLOCK (bottom platform) */
+      blocks.push({
+        x: (width - blockWidth) / 2,
+        y: canvas.height - 50,
+        w: blockWidth,
+        h: blockHeight,
+        type: "start"
+      });
+
+      /* ⭐ Tower blocks */
+      const baseY = canvas.height - 120;
 
       for (let i = 0; i < TOTAL_BLOCKS; i++) {
         const x = Math.random() * (width - blockWidth);
         const y = baseY - i * 60;
-        blocks.push({ x, y, w: blockWidth, h: blockHeight });
+        blocks.push({ x, y, w: blockWidth, h: blockHeight, type: "normal" });
       }
+
+      /* ⭐ FINISH BLOCK (top platform) */
+      const topY = baseY - TOTAL_BLOCKS * 60 - 80;
+
+      blocks.push({
+        x: (width - blockWidth) / 2,
+        y: topY,
+        w: blockWidth,
+        h: blockHeight,
+        type: "finish"
+      });
 
       await set(roomRef, {
         blocks,
@@ -152,8 +175,11 @@
       }
 
       playerId = "p_" + Date.now();
-      const startX = canvas.width / 2;
-      const startY = canvas.height - 100;
+
+      /* ⭐ Spawn on START block */
+      const startBlock = blocks.find(b => b.type === "start");
+      const startX = startBlock.x + startBlock.w / 2 - PLAYER_WIDTH / 2;
+      const startY = startBlock.y - PLAYER_HEIGHT;
 
       const newPlayer = {
         x: startX,
@@ -226,8 +252,9 @@
           p.respawnTimer--;
           statusEl.textContent = "Respawning in " + Math.ceil(p.respawnTimer / 60);
         } else {
-          p.x = canvas.width / 2;
-          p.y = canvas.height - 100;
+          const startBlock = blocks.find(b => b.type === "start");
+          p.x = startBlock.x + startBlock.w / 2 - PLAYER_WIDTH / 2;
+          p.y = startBlock.y - PLAYER_HEIGHT;
           p.vx = 0;
           p.vy = 0;
           p.alive = true;
@@ -275,10 +302,10 @@
         }
       });
 
-      /* ⭐ Win Check */
-      const topBlock = blocks[blocks.length - 1];
-      if (topBlock && p.y <= topBlock.y - PLAYER_HEIGHT) {
-        statusEl.textContent = "YOU REACHED THE TOP!";
+      /* ⭐ Win Check (finish block) */
+      const finishBlock = blocks.find(b => b.type === "finish");
+      if (finishBlock && p.y <= finishBlock.y - PLAYER_HEIGHT) {
+        statusEl.textContent = "🏆 YOU WIN!";
       }
 
       update(roomRef, {
@@ -293,11 +320,16 @@
       ctx.fillStyle = "#222";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      ctx.fillStyle = "#555";
+      /* ⭐ Draw Blocks */
       blocks.forEach(b => {
+        if (b.type === "start") ctx.fillStyle = "green";
+        else if (b.type === "finish") ctx.fillStyle = "gold";
+        else ctx.fillStyle = "#555";
+
         ctx.fillRect(b.x, b.y, b.w, b.h);
       });
 
+      /* ⭐ Draw Players */
       Object.keys(players).forEach(id => {
         const p = players[id];
         if (!p.alive) ctx.globalAlpha = 0.4;
