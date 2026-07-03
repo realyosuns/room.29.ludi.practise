@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Tower Race v0.2</title>
+  <title>Tower Race v0.3</title>
   <style>
     body {
       margin: 0;
@@ -38,13 +38,17 @@
     <button id="resetBtn">Reset Room</button>
     <span id="status">Not connected</span>
   </div>
+
   <canvas id="gameCanvas" width="600" height="800"></canvas>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getDatabase, ref, get, onValue, set, update } 
+    import { getDatabase, ref, get, onValue, set, update }
       from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider }
+      from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
 
+    /* ⭐ Firebase Config */
     const firebaseConfig = {
       apiKey: "AIzaSyBCLNLLSe-ex6lo60P3wDQ-_n510dnM-nc",
       authDomain: "room29practise.firebaseapp.com",
@@ -58,15 +62,23 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
+    /* ⭐ Auth */
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+    let userEmail = null;
+
+    /* ⭐ Room Setup */
     const ROOM_ID = "tower-room-1";
     const roomRef = ref(db, "rooms/" + ROOM_ID);
 
+    /* ⭐ Canvas + UI */
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const statusEl = document.getElementById("status");
     const joinBtn = document.getElementById("joinBtn");
     const resetBtn = document.getElementById("resetBtn");
 
+    /* ⭐ Game State */
     let playerId = null;
     let players = {};
     let blocks = [];
@@ -85,6 +97,7 @@
       return colors[Math.floor(Math.random() * colors.length)];
     }
 
+    /* ⭐ Create Tower */
     async function createTowerIfNeeded() {
       const snap = await get(roomRef);
       const val = snap.val();
@@ -117,8 +130,14 @@
       gameStarted = true;
     }
 
+    /* ⭐ Join Game (with Google Sign-In) */
     joinBtn.onclick = async () => {
-      statusEl.textContent = "Joining...";
+      statusEl.textContent = "Signing in...";
+
+      const result = await signInWithPopup(auth, provider);
+      userEmail = result.user.email;
+
+      statusEl.textContent = "Signed in as " + userEmail;
 
       await createTowerIfNeeded();
 
@@ -143,7 +162,8 @@
         vy: 0,
         color: randomColor(),
         alive: true,
-        respawnTimer: 0
+        respawnTimer: 0,
+        email: userEmail
       };
 
       await update(roomRef, {
@@ -153,13 +173,22 @@
       statusEl.textContent = "Joined as " + playerId;
     };
 
+    /* ⭐ Reset Room (ADMIN ONLY) */
     resetBtn.onclick = async () => {
+      if (userEmail !== "lukesun222@gmail.com") {
+        statusEl.textContent = "You do not have permission to reset the room.";
+        return;
+      }
+
       statusEl.textContent = "Resetting room...";
+
       await set(roomRef, null);
       await createTowerIfNeeded();
+
       statusEl.textContent = "Room reset!";
     };
 
+    /* ⭐ Sync Room */
     onValue(roomRef, (snapshot) => {
       const val = snapshot.val();
       if (!val) return;
@@ -169,6 +198,7 @@
       gameStarted = !!val.started;
     });
 
+    /* ⭐ Physics Helpers */
     function isOnBlock(p) {
       return blocks.some(b =>
         p.x > b.x &&
@@ -177,6 +207,7 @@
       );
     }
 
+    /* ⭐ Update Local Player */
     function updateLocalPlayer() {
       if (!playerId || !players[playerId]) return;
 
@@ -186,7 +217,7 @@
       const jumpPower = -10;
       const gravity = 0.5;
 
-      // respawn countdown
+      /* ⭐ Respawn Countdown */
       if (!p.alive) {
         p.vx = 0;
         p.vy = 0;
@@ -207,6 +238,7 @@
         return;
       }
 
+      /* ⭐ Movement */
       if (keys["ArrowLeft"] || keys["a"]) p.vx = -speed;
       else if (keys["ArrowRight"] || keys["d"]) p.vx = speed;
       else p.vx = 0;
@@ -223,12 +255,13 @@
       if (p.x < 0) p.x = 0;
       if (p.x > canvas.width - PLAYER_WIDTH) p.x = canvas.width - PLAYER_WIDTH;
 
-      // fall → death
+      /* ⭐ Fall → Death */
       if (p.y > canvas.height) {
         p.alive = false;
-        p.respawnTimer = 180; // 3 seconds at 60fps
+        p.respawnTimer = 180; // 3 seconds
       }
 
+      /* ⭐ Block Collisions */
       blocks.forEach(b => {
         const feetY = p.y + PLAYER_HEIGHT;
         if (
@@ -242,6 +275,7 @@
         }
       });
 
+      /* ⭐ Win Check */
       const topBlock = blocks[blocks.length - 1];
       if (topBlock && p.y <= topBlock.y - PLAYER_HEIGHT) {
         statusEl.textContent = "YOU REACHED THE TOP!";
@@ -252,6 +286,7 @@
       });
     }
 
+    /* ⭐ Draw */
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -272,6 +307,7 @@
       });
     }
 
+    /* ⭐ Game Loop */
     function loop() {
       updateLocalPlayer();
       draw();
