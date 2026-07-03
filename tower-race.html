@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Tower Race v0.7 (Beatable)</title>
+  <title>Tower Race v0.8 (Difficulty Modes)</title>
   <style>
     body {
       margin: 0;
@@ -30,12 +30,24 @@
       margin: 0 auto;
       border: 1px solid #444;
     }
+
+    select {
+      margin-left: 10px;
+    }
   </style>
 </head>
 <body>
   <div id="ui">
     <button id="joinBtn">Join Game</button>
     <button id="resetBtn">Reset Room</button>
+    <label>
+      Difficulty:
+      <select id="difficultySelect">
+        <option value="easy">Easy</option>
+        <option value="medium" selected>Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+    </label>
     <span id="status">Not connected</span>
   </div>
 
@@ -73,6 +85,7 @@
     const statusEl = document.getElementById("status");
     const joinBtn = document.getElementById("joinBtn");
     const resetBtn = document.getElementById("resetBtn");
+    const difficultySelect = document.getElementById("difficultySelect");
 
     let playerId = null;
     let players = {};
@@ -83,10 +96,9 @@
     const PLAYER_WIDTH = 20;
     const PLAYER_HEIGHT = 20;
 
-    // tuned difficulty
-    const MAX_X_GAP = 120;   // tighter sideways
-    const MAX_Y_GAP = 55;    // max vertical gap
-    const MIN_Y_GAP = 30;    // min vertical gap
+    let MAX_X_GAP = 140;
+    let MIN_Y_GAP = 35;
+    let MAX_Y_GAP = 65;
 
     const keys = {};
     window.addEventListener("keydown", e => keys[e.key] = true);
@@ -98,6 +110,29 @@
         statusEl.textContent = "Signed in as " + userEmail;
       }
     });
+
+    function applyDifficulty(mode) {
+      if (mode === "easy") {
+        MAX_X_GAP = 120;
+        MIN_Y_GAP = 30;
+        MAX_Y_GAP = 55;
+      } else if (mode === "medium") {
+        MAX_X_GAP = 140;
+        MIN_Y_GAP = 35;
+        MAX_Y_GAP = 65;
+      } else if (mode === "hard") {
+        MAX_X_GAP = 160;
+        MIN_Y_GAP = 40;
+        MAX_Y_GAP = 75;
+      }
+    }
+
+    difficultySelect.onchange = () => {
+      applyDifficulty(difficultySelect.value);
+      statusEl.textContent = "Difficulty set to " + difficultySelect.value;
+    };
+
+    applyDifficulty(difficultySelect.value);
 
     function randomColor() {
       const colors = ["red","blue","green","yellow","purple","orange","cyan","magenta","lime","pink"];
@@ -120,7 +155,6 @@
       const blockWidth = 120;
       const blockHeight = 25;
 
-      // start block
       blocks.push({
         x: (width - blockWidth) / 2,
         y: canvas.height - 50,
@@ -133,10 +167,9 @@
       let lastX = (width - blockWidth) / 2;
       let lastY = baseY;
 
-      // controlled, beatable tower
       for (let i = 0; i < TOTAL_BLOCKS; i++) {
         let newX = lastX + (Math.random() * MAX_X_GAP * 2 - MAX_X_GAP);
-        newX = Math.max(40, Math.min(newX, width - blockWidth - 40)); // keep away from edges
+        newX = Math.max(40, Math.min(newX, width - blockWidth - 40));
 
         let newY = lastY - (MIN_Y_GAP + Math.random() * (MAX_Y_GAP - MIN_Y_GAP));
 
@@ -152,7 +185,6 @@
         lastY = newY;
       }
 
-      // finish block
       const finishY = lastY - 70;
       blocks.push({
         x: (width - blockWidth) / 2,
@@ -165,7 +197,8 @@
       await set(roomRef, {
         blocks,
         players: {},
-        started: true
+        started: true,
+        difficulty: difficultySelect.value
       });
 
       gameStarted = true;
@@ -181,6 +214,16 @@
       }
 
       statusEl.textContent = "Signed in as " + userEmail;
+
+      const snapBefore = await get(roomRef);
+      const valBefore = snapBefore.val();
+
+      if (!valBefore) {
+        applyDifficulty(difficultySelect.value);
+      } else if (valBefore.difficulty) {
+        applyDifficulty(valBefore.difficulty);
+        difficultySelect.value = valBefore.difficulty;
+      }
 
       await createTowerIfNeeded();
 
@@ -215,7 +258,7 @@
         ["players/" + playerId]: newPlayer
       });
 
-      statusEl.textContent = "Joined as " + playerId;
+      statusEl.textContent = "Joined as " + playerId + " (" + difficultySelect.value + ")";
     };
 
     resetBtn.onclick = async () => {
@@ -237,6 +280,11 @@
       players = val.players || {};
       blocks = val.blocks || [];
       gameStarted = !!val.started;
+
+      if (val.difficulty) {
+        applyDifficulty(val.difficulty);
+        difficultySelect.value = val.difficulty;
+      }
     });
 
     function isOnBlock(p) {
@@ -247,13 +295,13 @@
       );
     }
 
-    function updateLocalPlayer() {
+    async function updateLocalPlayer() {
       if (!playerId || !players[playerId]) return;
 
       const p = players[playerId];
 
       const speed = 3;
-      const jumpPower = -12; // slightly higher jump
+      const jumpPower = -12;
       const gravity = 0.5;
 
       if (!p.alive) {
@@ -273,7 +321,7 @@
           statusEl.textContent = "Respawned!";
         }
 
-        update(roomRef, { ["players/" + playerId]: p });
+        await update(roomRef, { ["players/" + playerId]: p });
         return;
       }
 
@@ -313,7 +361,7 @@
 
       const finishBlock = blocks.find(b => b.type === "finish");
       if (finishBlock && p.y <= finishBlock.y - PLAYER_HEIGHT) {
-        statusEl.textContent = "🏆 YOU WIN!";
+        statusEl.textContent = "🏆 YOU WIN! (" + difficultySelect.value + ")";
       }
 
       await update(roomRef, {
