@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Tower Race v0.5</title>
+  <title>Tower Race v0.6</title>
   <style>
     body {
       margin: 0;
@@ -96,6 +96,11 @@
     const PLAYER_WIDTH = 20;
     const PLAYER_HEIGHT = 20;
 
+    /* ⭐ Controlled generation settings */
+    const MAX_X_GAP = 150;   // max horizontal distance between blocks
+    const MAX_Y_GAP = 70;    // max vertical distance between blocks
+    const MIN_Y_GAP = 40;    // minimum vertical spacing
+
     const keys = {};
     window.addEventListener("keydown", e => keys[e.key] = true);
     window.addEventListener("keyup", e => keys[e.key] = false);
@@ -105,7 +110,7 @@
       return colors[Math.floor(Math.random() * colors.length)];
     }
 
-    /* ⭐ Create Tower (with start + finish blocks) */
+    /* ⭐ Create Tower (with controlled generation) */
     async function createTowerIfNeeded() {
       const snap = await get(roomRef);
       const val = snap.val();
@@ -123,7 +128,7 @@
       const blockWidth = 120;
       const blockHeight = 25;
 
-      /* ⭐ START BLOCK (bottom platform) */
+      /* ⭐ START BLOCK */
       blocks.push({
         x: (width - blockWidth) / 2,
         y: canvas.height - 50,
@@ -132,21 +137,36 @@
         type: "start"
       });
 
-      /* ⭐ Tower blocks */
+      /* ⭐ Controlled tower generation */
       const baseY = canvas.height - 120;
+      let lastX = (width - blockWidth) / 2;
+      let lastY = baseY;
 
       for (let i = 0; i < TOTAL_BLOCKS; i++) {
-        const x = Math.random() * (width - blockWidth);
-        const y = baseY - i * 60;
-        blocks.push({ x, y, w: blockWidth, h: blockHeight, type: "normal" });
+
+        let newX = lastX + (Math.random() * MAX_X_GAP * 2 - MAX_X_GAP);
+        newX = Math.max(0, Math.min(newX, width - blockWidth));
+
+        let newY = lastY - (MIN_Y_GAP + Math.random() * (MAX_Y_GAP - MIN_Y_GAP));
+
+        blocks.push({
+          x: newX,
+          y: newY,
+          w: blockWidth,
+          h: blockHeight,
+          type: "normal"
+        });
+
+        lastX = newX;
+        lastY = newY;
       }
 
-      /* ⭐ FINISH BLOCK (top platform) */
-      const topY = baseY - TOTAL_BLOCKS * 60 - 80;
+      /* ⭐ FINISH BLOCK */
+      const finishY = lastY - 80;
 
       blocks.push({
         x: (width - blockWidth) / 2,
-        y: topY,
+        y: finishY,
         w: blockWidth,
         h: blockHeight,
         type: "finish"
@@ -164,7 +184,6 @@
     /* ⭐ Join Game (with login fix) */
     joinBtn.onclick = async () => {
 
-      /* ⭐ If already signed in → skip popup */
       if (!auth.currentUser) {
         statusEl.textContent = "Signing in...";
         const result = await signInWithPopup(auth, provider);
@@ -189,7 +208,6 @@
 
       playerId = "p_" + Date.now();
 
-      /* ⭐ Spawn on START block */
       const startBlock = blocks.find(b => b.type === "start");
       const startX = startBlock.x + startBlock.w / 2 - PLAYER_WIDTH / 2;
       const startY = startBlock.y - PLAYER_HEIGHT;
@@ -298,7 +316,7 @@
       /* ⭐ Fall → Death */
       if (p.y > canvas.height) {
         p.alive = false;
-        p.respawnTimer = 180; // 3 seconds
+        p.respawnTimer = 180;
       }
 
       /* ⭐ Block Collisions */
@@ -315,7 +333,7 @@
         }
       });
 
-      /* ⭐ Win Check (finish block) */
+      /* ⭐ Win Check */
       const finishBlock = blocks.find(b => b.type === "finish");
       if (finishBlock && p.y <= finishBlock.y - PLAYER_HEIGHT) {
         statusEl.textContent = "🏆 YOU WIN!";
